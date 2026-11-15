@@ -1,0 +1,36 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ktp-hotel-ocr:latest
+    container_name: ktp-hotel-ocr-api
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8000}:8000"
+    environment:
+      - ENV=${ENV:-production}
+      - DEBUG=${DEBUG:-false}
+      - HOST=0.0.0.0
+      - PORT=8000
+      - TESSERACT_CMD=${TESSERACT_CMD:-/usr/bin/tesseract}
+      - TESSDATA_PREFIX=${TESSDATA_PREFIX:-/app/tessdata}
+      - OCR_LANG=${OCR_LANG:-ind+eng}
+      - OCR_FALLBACK_LANG=${OCR_FALLBACK_LANG:-eng}
+      - OCR_PSM=${OCR_PSM:-6}
+      - OCR_OEM=${OCR_OEM:-3}
+      - OCR_TIMEOUT_SECONDS=${OCR_TIMEOUT_SECONDS:-15}
+      - PREPROCESSING_ENABLED=${PREPROCESSING_ENABLED:-true}
+      - DESKEW_ENABLED=${DESKEW_ENABLED:-true}
+      - TARGET_DPI_WIDTH=${TARGET_DPI_WIDTH:-1200}
+      - CLAHE_CLIP_LIMIT=${CLAHE_CLIP_LIMIT:-2.0}
+      - CLAHE_GRID_SIZE=${CLAHE_GRID_SIZE:-8}
+      - MIN_ADULT_AGE=${MIN_ADULT_AGE:-18}
+      - REQUIRE_16_DIGIT_NIK=${REQUIRE_16_DIGIT_NIK:-true}
+      - MAX_UPLOAD_SIZE_MB=${MAX_UPLOAD_SIZE_MB:-10}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s

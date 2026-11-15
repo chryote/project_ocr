@@ -6,9 +6,61 @@ Manages all environment variables and operational defaults with type-safe valida
 from functools import lru_cache
 import os
 from pathlib import Path
+import shutil
 from typing import List
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def get_default_tesseract_cmd() -> str:
+    """Detects default Tesseract binary across Windows, Linux, macOS, and Docker containers."""
+    if "TESSERACT_CMD" in os.environ and os.environ["TESSERACT_CMD"].strip():
+        return os.environ["TESSERACT_CMD"].strip()
+
+    # 1. Check system PATH (standard in Docker, Linux, and macOS Homebrew)
+    which_cmd = shutil.which("tesseract")
+    if which_cmd:
+        return which_cmd
+
+    # 2. Check standard Homebrew macOS paths
+    for mac_path in ("/opt/homebrew/bin/tesseract", "/usr/local/bin/tesseract"):
+        if os.path.isfile(mac_path):
+            return mac_path
+
+    # 3. Check standard Linux path
+    if os.path.isfile("/usr/bin/tesseract"):
+        return "/usr/bin/tesseract"
+
+    # 4. Check standard Windows default path
+    win_default = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+    if os.path.isfile(win_default):
+        return win_default
+
+    return "tesseract"
+
+
+def get_default_tessdata_prefix() -> str:
+    """Detects default tessdata directory across project directory and system paths."""
+    if "TESSDATA_PREFIX" in os.environ and os.environ["TESSDATA_PREFIX"].strip():
+        return os.environ["TESSDATA_PREFIX"].strip()
+
+    # Repository / application bundled tessdata
+    local_dir = Path(__file__).resolve().parent.parent / "tessdata"
+    if local_dir.is_dir():
+        return str(local_dir)
+
+    # Standard system tessdata directories (Debian/Ubuntu, Homebrew macOS)
+    for sys_dir in (
+        "/usr/share/tesseract-ocr/5/tessdata",
+        "/usr/share/tesseract-ocr/4.00/tessdata",
+        "/usr/share/tessdata",
+        "/opt/homebrew/share/tessdata",
+        "/usr/local/share/tessdata",
+    ):
+        if os.path.isdir(sys_dir):
+            return sys_dir
+
+    return str(local_dir)
 
 
 class Settings(BaseSettings):
@@ -37,11 +89,11 @@ class Settings(BaseSettings):
 
     # Tesseract OCR Configuration
     TESSERACT_CMD: str = Field(
-        default=os.getenv("TESSERACT_CMD", r"C:\Program Files\Tesseract-OCR\tesseract.exe"),
+        default_factory=get_default_tesseract_cmd,
         description="Path to Tesseract executable",
     )
     TESSDATA_PREFIX: str = Field(
-        default=str(Path(__file__).resolve().parent.parent / "tessdata"),
+        default_factory=get_default_tessdata_prefix,
         description="Path to tessdata directory containing traineddata files",
     )
     OCR_LANG: str = Field(

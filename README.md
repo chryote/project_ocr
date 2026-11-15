@@ -2,6 +2,8 @@
 
 [![standard-readme compliant](https://img.shields.io/badge/readme%20style-standard-brightgreen.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg?style=flat-square)](https://www.python.org/)
+[![Docker](https://img.shields.io/badge/docker-ready-2496ED.svg?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com/)
+[![Multi-Arch](https://img.shields.io/badge/platform-linux%2Famd64%20%7C%20linux%2Farm64-lightgrey.svg?style=flat-square)](https://www.docker.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 [![Coverage](https://img.shields.io/badge/coverage-91%25-brightgreen.svg?style=flat-square)](https://pytest.org/)
 
@@ -13,7 +15,13 @@ Built with strict separation of concerns, zero god classes, comprehensive unit t
 
 - [Background](#background)
 - [Install](#install)
+  - [Option 1: Docker (Cross-Platform Recommended)](#option-1-docker-cross-platform-recommended)
+  - [Option 2: Native Local Installation](#option-2-native-local-installation)
 - [Usage](#usage)
+  - [Running the API Server](#running-the-api-server)
+  - [Accessing Interactive Documentation](#accessing-interactive-documentation)
+  - [Running Unit Tests](#running-unit-tests)
+  - [Running Performance Benchmarks](#running-performance-benchmarks)
 - [API](#api)
 - [Benchmarks](#benchmarks)
 - [Contributing](#contributing)
@@ -37,15 +45,113 @@ This project delivers a modular, standalone API that addresses these challenges 
 
 ## Install
 
-### Prerequisites
+The application can be deployed seamlessly across **Windows**, **Linux**, and **macOS** using **Docker** (recommended) or installed **natively** on your host system.
+
+---
+
+### Option 1: Docker (Cross-Platform Recommended)
+
+Docker is the recommended deployment method because it packages Python 3.11, Tesseract OCR 5, language packs (`ind+eng+osd`), OpenCV C++ runtime libraries, and a non-root application user into a unified container. This eliminates OS-level configuration discrepancies across Windows, Linux, and macOS.
+
+The image supports multi-architecture builds out of the box:
+- **`linux/amd64`**: Windows (x86_64), Linux (x86_64), Intel Macs
+- **`linux/arm64`**: macOS Apple Silicon (M1/M2/M3/M4), Linux ARM64 (AWS Graviton, Raspberry Pi)
+
+#### Prerequisites
+
+Install Docker Engine or Docker Desktop on your system:
+- **Windows:** [Docker Desktop for Windows](https://docs.docker.com/desktop/setup/install/windows-install/) (with WSL 2 backend).
+- **macOS:** [Docker Desktop for Mac](https://docs.docker.com/desktop/setup/install/mac-install/) (Apple Silicon or Intel).
+- **Linux (Ubuntu/Debian):**
+  ```bash
+  sudo apt-get update && sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+  ```
+
+#### 1. Quickstart with Docker Compose
+
+1. Clone or navigate to the repository directory:
+   ```bash
+   cd d:/project_ocr
+   ```
+
+2. (Optional) Create a local `.env` configuration file if you wish to override operational defaults:
+   ```bash
+   cp .env.example .env
+   ```
+
+3. Build the image and start the service in background mode:
+   ```bash
+   docker compose up --build -d
+   ```
+
+4. Verify container status and health:
+   ```bash
+   docker compose ps
+   ```
+
+5. Confirm the API and Tesseract engine are operational:
+   ```bash
+   curl http://localhost:8000/health
+   ```
+
+6. To stop the service:
+   ```bash
+   docker compose down
+   ```
+
+#### 2. Standalone Docker CLI Commands
+
+You can also build and run the container directly using the Docker CLI:
+
+```bash
+# Build the Docker image
+docker build -t ktp-hotel-ocr:latest .
+
+# Run the container (bound to port 8000)
+docker run -d \
+  --name ktp-hotel-ocr-api \
+  -p 8000:8000 \
+  --restart unless-stopped \
+  ktp-hotel-ocr:latest
+
+# View live container logs
+docker logs -f ktp-hotel-ocr-api
+
+# Stop and remove the container
+docker stop ktp-hotel-ocr-api && docker rm ktp-hotel-ocr-api
+```
+
+#### 3. Development Mode with Live Code Reload
+
+For local development where you want host code edits to reload instantly inside the container:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+```
+
+#### 4. Multi-Architecture Builds (AMD64 & ARM64)
+
+To build and distribute cross-platform container images:
+
+```bash
+docker buildx build --platform linux/amd64,linux/arm64 -t ktp-hotel-ocr:latest .
+```
+
+---
+
+### Option 2: Native Local Installation
+
+If you prefer to run directly on your host operating system without Docker:
+
+#### Prerequisites
 
 - **Python:** Version 3.10 or higher.
-- **Tesseract OCR:** Tesseract binary version 5.x installed on the host system.
-  - Windows: UB-Mannheim Tesseract installer (e.g., `winget install UB-Mannheim.TesseractOCR` or download from [GitHub](https://github.com/UB-Mannheim/tesseract/wiki)).
-  - Linux (Ubuntu/Debian): `sudo apt-get install tesseract-ocr tesseract-ocr-ind libtesseract-dev`
-  - macOS: `brew install tesseract tesseract-lang`
+- **Tesseract OCR:** Tesseract binary version 5.x installed on the host system:
+  - **Windows:** UB-Mannheim Tesseract installer (e.g., `winget install UB-Mannheim.TesseractOCR` or download from [GitHub](https://github.com/UB-Mannheim/tesseract/wiki)).
+  - **Linux (Ubuntu/Debian):** `sudo apt-get update && sudo apt-get install -y tesseract-ocr tesseract-ocr-ind libtesseract-dev`
+  - **macOS (Homebrew):** `brew install tesseract tesseract-lang`
 
-### Setup
+#### Setup Steps
 
 1. Clone or navigate to the repository directory:
    ```bash
@@ -67,17 +173,17 @@ This project delivers a modular, standalone API that addresses these challenges 
    ```
 
 4. Configure environment variables:
-   Copy `.env.example` to `.env` and adjust the paths to your local Tesseract executable and tessdata directory if necessary:
+   Copy `.env.example` to `.env` and adjust the paths to your local Tesseract executable if needed (the application also features automatic binary discovery across standard OS locations):
    ```bash
    cp .env.example .env
    ```
 
-   *Windows default path in `.env`:*
-   ```ini
-   TESSERACT_CMD=C:\Program Files\Tesseract-OCR\tesseract.exe
-   TESSDATA_PREFIX=./tessdata
-   OCR_LANG=ind+eng
-   ```
+   *Platform Tesseract Path Reference in `.env`:*
+   - **Docker:** `/usr/bin/tesseract`
+   - **Windows:** `C:\Program Files\Tesseract-OCR\tesseract.exe`
+   - **Linux:** `/usr/bin/tesseract`
+   - **macOS (Apple Silicon):** `/opt/homebrew/bin/tesseract`
+   - **macOS (Intel):** `/usr/local/bin/tesseract`
 
 ## Usage
 
@@ -104,13 +210,25 @@ The service will bind to `http://localhost:8000`.
 
 ### Running Unit Tests
 
-The test suite contains 29 comprehensive test cases covering every service, validation rule, error handler, and API endpoint with 91% code coverage:
+The test suite contains 29 comprehensive test cases covering every service, validation rule, error handler, and API endpoint with 91% code coverage.
+
+#### Run Tests Inside Docker (Zero host dependencies):
+
+```bash
+# Using Docker Compose
+docker compose run --rm api pytest --cov=app --cov-report=term-missing
+
+# Or using standalone Docker CLI
+docker run --rm ktp-hotel-ocr:latest pytest
+```
+
+#### Run Tests Locally:
 
 ```bash
 pytest
 ```
 
-To run with full coverage breakdown:
+To run locally with full coverage breakdown:
 
 ```bash
 pytest --cov=app --cov-report=term-missing
@@ -118,7 +236,15 @@ pytest --cov=app --cov-report=term-missing
 
 ### Running Performance Benchmarks
 
-An automated benchmark suite evaluates end-to-end processing latency, throughput, memory consumption, and field extraction accuracy across clean, skewed, noisy, female (+40 rule), and minor guest scenarios:
+An automated benchmark suite evaluates end-to-end processing latency, throughput, memory consumption, and field extraction accuracy across clean, skewed, noisy, female (+40 rule), and minor guest scenarios.
+
+#### Run Benchmarks Inside Docker:
+
+```bash
+docker compose run --rm api python -m benchmarks.benchmark_suite --iterations 3
+```
+
+#### Run Benchmarks Locally:
 
 ```bash
 python -m benchmarks.benchmark_suite --iterations 3 --output benchmarks/benchmark_results.json

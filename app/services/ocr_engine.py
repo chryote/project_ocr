@@ -7,6 +7,7 @@ and confidence score extraction.
 from dataclasses import dataclass, field
 import os
 from pathlib import Path
+import shutil
 import subprocess
 from typing import List, Optional
 import numpy as np
@@ -66,10 +67,14 @@ class TesseractOCREngine:
         if os.path.isfile(self.tesseract_cmd):
             pytesseract.pytesseract.tesseract_cmd = self.tesseract_cmd
         else:
-            logger.warning(
-                f"Tesseract binary not found at configured path: {self.tesseract_cmd}. "
-                "Defaulting to system PATH."
-            )
+            resolved_path = shutil.which(self.tesseract_cmd)
+            if resolved_path:
+                pytesseract.pytesseract.tesseract_cmd = resolved_path
+            else:
+                logger.warning(
+                    f"Tesseract binary not found at configured path: {self.tesseract_cmd}. "
+                    "Defaulting to system PATH."
+                )
 
         if self.tessdata_prefix and os.path.isdir(self.tessdata_prefix):
             os.environ["TESSDATA_PREFIX"] = self.tessdata_prefix

@@ -1,0 +1,34 @@
+# Version control
+.git/
+.gitignore
+
+# Python virtual environments & bytecode
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Test & coverage caches
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local configuration overrides and secrets
+.env
+.env.*
+!.env.example
+
+# IDEs and OS metadata
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Documentation and temporary logs
+*.log
+benchmarks/benchmark_results.json
