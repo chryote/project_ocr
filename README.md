@@ -257,4 +257,4 @@ PRs accepted. Please review the following guidelines before submitting code:
 
 ## License
 
-[MIT](LICENSE) © 2026 Hospitality Engineering Team
+[MIT](LICENSE) © 2026 chryote
